@@ -1,0 +1,51 @@
+[project]
+name = "student"
+version = "0.1.0"
+description = "RAG against the machine - Retrieval-Augmented Generation over the vLLM codebase."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+authors = [{ name = "Student" }]
+dependencies = [
+    "pydantic>=2.6",
+    "fire>=0.6.0",
+    "tqdm>=4.66",
+    "bm25s>=0.2.0",
+    "PyStemmer>=2.2.0",
+    "numpy>=1.26",
+    "transformers>=4.44",
+    "torch>=2.2",
+    "accelerate>=0.30",
+    "safetensors>=0.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "flake8>=7.0",
+    "mypy>=1.10",
+    "pytest>=8.0",
+    "types-tqdm",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/student"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503"]
+exclude = [".venv", "build", "dist", "data"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+exclude = ["data/", "build/", "dist/"]

@@ -1,0 +1,9 @@
+{
+  "rag_questions": [
+    { "question_id": "q1", "question": "How does vLLM implement PagedAttention?" },
+    { "question_id": "q2", "question": "What is the AITERPagedAttention class?" },
+    { "question_id": "q3", "question": "Where is the XFormersBackend class defined and what does it return?" },
+    { "question_id": "q4", "question": "What attention backend uses xFormers in vLLM?" },
+    { "question_id": "q5", "question": "What are vLLM key features around serving throughput and KV memory?" }
+  ]
+}

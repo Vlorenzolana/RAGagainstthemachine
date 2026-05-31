@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  rag:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ragagainsthemachine:latest
+    container_name: rag-local-dev
+    
+    # Resource limits (adjust for your system: ~7.7GB RAM, 10 cores)
+    mem_limit: 4g
+    cpus: '4'
+    
+    # Volumes for data persistence
+    volumes:
+      # Mount your local data directories
+      - ./data/raw:/app/data/raw:ro          # Read-only corpus
+      - ./data/processed:/app/data/processed # Index (read-write)
+      - ./data/output:/app/data/output       # Results
+      - /tmp/rag_models:/models              # Model cache (persistent)
+    
+    # Environment variables
+    environment:
+      TRANSFORMERS_CACHE: /models/transformers
+      TORCH_HOME: /models/torch
+      HF_HOME: /models/huggingface
+      PYTHONUNBUFFERED: '1'
+    
+    # Interactive terminal
+    stdin_open: true
+    tty: true
+    
+    # Default command (override with docker-compose run)
+    entrypoint: python -m student
+    command: help
+
+  # Service for batch processing (different config)
+  rag-batch:
+    extends: rag
+    container_name: rag-batch
+    mem_limit: 6g
+    cpus: '6'
+    # For long-running batch jobs, can override at runtime

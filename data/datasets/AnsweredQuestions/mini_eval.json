@@ -1,0 +1,64 @@
+{
+  "rag_questions": [
+    {
+      "question_id": "q1",
+      "question": "How does vLLM implement PagedAttention?",
+      "sources": [
+        {
+          "file_path": "vllm/attention/backends/rocm_flash_attn.py",
+          "first_character_index": 1249,
+          "last_character_index": 1997
+        }
+      ],
+      "answer": "vLLM implements PagedAttention via helper functions in vllm/attention/ops, used by backends like ROCmFlashAttentionImpl."
+    },
+    {
+      "question_id": "q2",
+      "question": "What is the AITERPagedAttention class?",
+      "sources": [
+        {
+          "file_path": "vllm/attention/ops/rocm_aiter_paged_attn.py",
+          "first_character_index": 350,
+          "last_character_index": 2313
+        }
+      ],
+      "answer": "AITERPagedAttention is a subclass of PagedAttention that provides AITER-based KV cache writes for ROCm GPUs."
+    },
+    {
+      "question_id": "q3",
+      "question": "Where is the XFormersBackend class defined and what does it return?",
+      "sources": [
+        {
+          "file_path": "vllm/attention/backends/xformers.py",
+          "first_character_index": 1210,
+          "last_character_index": 2520
+        }
+      ],
+      "answer": "XFormersBackend is defined in vllm/attention/backends/xformers.py; its get_name returns 'XFORMERS' and get_impl_cls returns XFormersImpl."
+    },
+    {
+      "question_id": "q4",
+      "question": "What attention backend uses xFormers in vLLM?",
+      "sources": [
+        {
+          "file_path": "vllm/attention/backends/xformers.py",
+          "first_character_index": 0,
+          "last_character_index": 1210
+        }
+      ],
+      "answer": "vLLM provides an attention layer with xFormers and PagedAttention, in vllm/attention/backends/xformers.py."
+    },
+    {
+      "question_id": "q5",
+      "question": "What are vLLM key features around serving throughput and KV memory?",
+      "sources": [
+        {
+          "file_path": "docs/README.md",
+          "first_character_index": 1812,
+          "last_character_index": 3251
+        }
+      ],
+      "answer": "vLLM offers state-of-the-art serving throughput, efficient KV memory management via PagedAttention, and continuous batching."
+    }
+  ]
+}
