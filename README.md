@@ -1,14 +1,12 @@
-*This project has been created as part of the 42 curriculum by student.*
+*This project has been created as part of the 42 curriculum by vlorenzo.*
 
 # RAG against the machine
-
 Retrieval-Augmented Generation over the [vLLM](https://github.com/vllm-project/vllm)
 codebase. Given a question about vLLM, the system finds the most relevant code
 and documentation snippets, then asks a small local LLM
 (`Qwen/Qwen3-0.6B`) to answer using only that retrieved context.
 
 ## Table of Contents
-
 - [Description](#description)
 - [System Requirements](#system-requirements)
 - [Installation](#installation)
@@ -31,7 +29,6 @@ and documentation snippets, then asks a small local LLM
 ---
 
 ## Description
-
 The project implements the four canonical RAG stages:
 
 1. **Ingestion / indexing** – walks the vLLM corpus, chunks Python code with
