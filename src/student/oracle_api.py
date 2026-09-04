@@ -4,12 +4,13 @@ import os
 import json
 import random
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List
 
 import requests
-from fastapi import FastAPI, HTTPException, Header, Depends
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 # --- Models --------------------------------------------------------------
 class Card(BaseModel):
@@ -19,8 +20,10 @@ class Card(BaseModel):
     content_type: str = "image/jpeg"
 
 class QueryRequest(BaseModel):
-    question: str
-    count: Optional[int] = 12
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    question: str = Field(min_length=1, max_length=500)
+    count: int = Field(default=12, ge=1, le=12)
 
 class QueryResponse(BaseModel):
     question: str
@@ -35,17 +38,27 @@ STATIC_DIR = Path(__file__).resolve().parents[2] / "web" / "oracle"
 if STATIC_DIR.exists():
     app.mount("/frontend", StaticFiles(directory=str(STATIC_DIR)), name="frontend")
 
+_cors_origins = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["*"],
+    )
+
 # --- Simple API-key dependency (optional) -------------------------------
 API_KEY = os.environ.get("API_KEY")  # if not set, API is open (dev convenience)
 
-def require_api_key(x_api_key: str = Header(None)):
+def require_api_key(x_api_key: str | None = Header(default=None)) -> bool:
     if API_KEY:
         if not x_api_key or x_api_key != API_KEY:
             raise HTTPException(status_code=401, detail="Invalid or missing API key")
     return True
 
 # --- Helpers ------------------------------------------------------------
-def load_catalog() -> List[dict]:
+def load_catalog() -> List[dict[str, Any]]:
     if not CATALOG_PATH.exists():
         return []
     with CATALOG_PATH.open("r", encoding="utf-8") as fh:
@@ -54,7 +67,8 @@ def load_catalog() -> List[dict]:
 # --- Engine call --------------------------------------------------------
 LLM_ENGINE_URL = os.environ.get("LLM_ENGINE_URL")  # e.g. http://engine:8001
 
-def call_engine(question: str, count: int) -> Optional[dict]:
+
+def call_engine(question: str, count: int) -> dict[str, Any] | None:
     """Call external engine service. Expected to return JSON { cards: [...], explanation: '...' }"""
     if not LLM_ENGINE_URL:
         return None
@@ -73,7 +87,7 @@ def call_engine(question: str, count: int) -> Optional[dict]:
 
 # --- Endpoints ----------------------------------------------------------
 @app.get("/api/oracle/cards", response_model=List[Card], dependencies=[Depends(require_api_key)])
-def get_cards(count: int = 12):
+def get_cards(count: int = Query(default=12, ge=1, le=12)) -> List[dict[str, Any]]:
     catalog = load_catalog()
     if not catalog:
         raise HTTPException(status_code=404, detail="Image catalog not found")
@@ -81,7 +95,7 @@ def get_cards(count: int = 12):
     return random.sample(catalog, k=n)
 
 @app.get("/api/oracle/cards/{card_id}", response_model=Card, dependencies=[Depends(require_api_key)])
-def get_card(card_id: str):
+def get_card(card_id: str) -> dict[str, Any]:
     catalog = load_catalog()
     for c in catalog:
         if c["id"] == card_id:
@@ -89,7 +103,7 @@ def get_card(card_id: str):
     raise HTTPException(status_code=404, detail="Card not found")
 
 @app.post("/api/oracle/query", response_model=QueryResponse, dependencies=[Depends(require_api_key)])
-def query_oracle(req: QueryRequest):
+def query_oracle(req: QueryRequest) -> QueryResponse:
     """
     Lightweight query endpoint. Tries the external engine service first (if configured),
     otherwise falls back to a deterministic, CPU-free selection heuristic.
@@ -97,10 +111,10 @@ def query_oracle(req: QueryRequest):
     catalog = load_catalog()
     if not catalog:
         raise HTTPException(status_code=404, detail="Image catalog not found")
-    count = max(1, min(req.count or 12, len(catalog)))
+    count = min(req.count, len(catalog))
 
     # Try engine
-    engine_resp = call_engine(req.question or "", count)
+    engine_resp = call_engine(req.question, count)
     if engine_resp and isinstance(engine_resp, dict) and engine_resp.get("cards"):
         # engine is expected to return full card objects or at least IDs
         cards = engine_resp["cards"]
@@ -113,8 +127,11 @@ def query_oracle(req: QueryRequest):
         return QueryResponse(question=req.question, cards=cards, explanation=explanation)
 
     # Fallback deterministic pseudo-random lightweight selection
-    seed = sum(ord(c) for c in (req.question or ""))
+    seed = sum(ord(c) for c in req.question)
     rng = random.Random(seed)
     chosen = rng.sample(catalog, k=count)
-    explanation = "Seleccionadas por heurística ligera local (simulación). Sustituir por motor IA cuando sea necesario."
+    explanation = (
+        "Seleccionadas por heurística ligera local (simulación). "
+        "Sustituir por motor IA cuando sea necesario."
+    )
     return QueryResponse(question=req.question, cards=chosen, explanation=explanation)

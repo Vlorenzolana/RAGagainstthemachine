@@ -7,6 +7,7 @@
 body{margin:0;background:var(--bg);color:var(--text);min-height:100vh}
 .container{max-width:900px;margin:24px auto;padding:16px}
 h1{margin:0 0 12px;font-size:1.4rem}
+.notice{color:var(--muted);margin:0 0 12px;font-size:.95rem}
 form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 input[type="text"]{flex:1;padding:8px;border-radius:6px;border:1px solid #22303b;background:#07101a;color:var(--text)}
 input[type="number"]{width:72px;padding:8px;border-radius:6px;border:1px solid #22303b;background:#07101a;color:var(--text)}
