@@ -1,0 +1,20 @@
+:root{
+  --bg:#0f1720; --card:#0b1220; --text:#e6eef8; --muted:#9fb0c8;
+  --accent:#66c2ff;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);min-height:100vh}
+.container{max-width:900px;margin:24px auto;padding:16px}
+h1{margin:0 0 12px;font-size:1.4rem}
+.notice{color:var(--muted);margin:0 0 12px;font-size:.95rem}
+form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+input[type="text"]{flex:1;padding:8px;border-radius:6px;border:1px solid #22303b;background:#07101a;color:var(--text)}
+input[type="number"]{width:72px;padding:8px;border-radius:6px;border:1px solid #22303b;background:#07101a;color:var(--text)}
+button{padding:8px 12px;border-radius:6px;border:none;background:var(--accent);color:#06212f;cursor:pointer}
+.muted{color:var(--muted);margin-bottom:8px;font-size:0.95rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.card{background:var(--card);padding:8px;border-radius:8px;display:flex;flex-direction:column;align-items:center}
+.card img{width:100%;height:auto;border-radius:6px;object-fit:cover}
+.card .meta{margin-top:8px;font-size:0.85rem;color:var(--muted);text-align:center}
+.small{width:48px;height:48px;border-radius:6px}
