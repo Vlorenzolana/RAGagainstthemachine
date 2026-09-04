@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oracle</title>
+  <link rel="stylesheet" href="/frontend/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Oracle (12 Cards)</h1>
+    <form id="oracle-form">
+      <label for="question">Question</label>
+      <textarea id="question" name="question" rows="3" required></textarea>
+      <label for="count">Cards</label>
+      <input id="count" name="count" type="number" min="1" max="12" value="12" />
+      <button type="submit">Consult Oracle</button>
+    </form>
+
+    <section id="result" class="hidden">
+      <p id="explanation"></p>
+      <div id="cards" class="grid"></div>
+    </section>
+
+    <p id="error" class="error"></p>
+  </main>
+  <script src="/frontend/main.js"></script>
+</body>
+</html>
