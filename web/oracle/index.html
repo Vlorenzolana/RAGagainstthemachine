@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>RAG Oracle — Consulta</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>RAG Oracle</h1>
+
+    <form id="queryForm">
+      <label for="question">Pregunta</label>
+      <input id="question" name="question" type="text" placeholder="Escribe tu pregunta..." required />
+      <label for="count">Nº imágenes</label>
+      <input id="count" name="count" type="number" min="1" max="12" value="12" />
+      <button type="submit">Consultar</button>
+    </form>
+
+    <section id="explanation" class="muted"></section>
+
+    <section id="gallery" class="grid" aria-live="polite"></section>
+  </main>
+
+  <script src="main.js" defer></script>
+</body>
+</html>
