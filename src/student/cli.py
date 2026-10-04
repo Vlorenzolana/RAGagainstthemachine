@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from student.chunking import build_chunks
 from student.evaluation import evaluate, load_ground_truth
-from student.generation import AnswerGenerator, ContextSnippet
+from student.generation import DEFAULT_MODEL_ID, AnswerGenerator, ContextSnippet
 from student.indexing import (
     DEFAULT_PROCESSED_DIR,
     BM25Retriever,
@@ -110,7 +110,7 @@ class StudentCLI:
         print()
         print("  Retrieval-Augmented Generation over the vLLM codebase.")
         print("  Ask questions about vLLM and get grounded answers powered by")
-        print("  a local LLM (Qwen/Qwen3-0.6B) and BM25 retrieval.")
+        print("  OpenRouter chat models and BM25 retrieval.")
         print()
         
         print_system_requirements()
@@ -303,7 +303,7 @@ class StudentCLI:
         query: str,
         k: int = 10,
         processed_dir: str = str(DEFAULT_PROCESSED_DIR),
-        model: str = "Qwen/Qwen3-0.6B",
+        model: str = DEFAULT_MODEL_ID,
         max_context_chars: int = 8000,
         max_new_tokens: int = 384,
         thinking: bool = False,
@@ -312,20 +312,19 @@ class StudentCLI:
         """Retrieve top-k context and generate an answer to ``query``.
         
         This is the full RAG pipeline: retrieves relevant code/docs,
-        assembles them into a context block, then prompts a local LLM
-        to answer using only that retrieved context (no hallucination).
+        assembles them into a context block, then prompts an OpenRouter
+        model to answer using only that retrieved context (no hallucination).
 
         Args:
             query: The question (e.g. "How to configure OpenAI server?")
             k: Number of source snippets to retrieve. Default: 10
             processed_dir: Directory containing the BM25 index.
                           Default: 'data/processed'
-            model: Hugging Face model ID for generation.
-                  Default: 'Qwen/Qwen3-0.6B' (small, fast, local)
+            model: OpenRouter model ID for generation.
+                  Default: value of OPENROUTER_DEFAULT_MODEL.
             max_context_chars: Max characters in context block. Default: 8000
             max_new_tokens: Max tokens to generate. Default: 384
-            thinking: Enable chain-of-thought reasoning (if supported).
-                     Default: False
+            thinking: Accepted for backward compatibility, ignored.
             temperature: Sampling temperature (0.0 = deterministic).
                         Default: 0.0
                         
@@ -357,15 +356,16 @@ class StudentCLI:
             for c, _ in results
         ]
         try:
-            print_info("Generating answer with local LLM...")
+            if thinking:
+                print_info("Ignoring --thinking (not used by OpenRouter client).")
+            print_info("Generating answer with OpenRouter...")
             generator = AnswerGenerator(
                 model_id=model,
                 max_context_chars=max_context_chars,
                 max_new_tokens=max_new_tokens,
-                enable_thinking=thinking,
                 temperature=temperature,
             )
-            answer_text = generator.generate(query, snippets, sources)
+            answer_text = generator.generate(query, snippets, sources, model=model)
         except Exception as exc:
             print_error(f"Generation failed: {exc}")
             sys.exit(1)
@@ -386,7 +386,7 @@ class StudentCLI:
         student_search_results_path: str,
         save_directory: str = "data/output/search_results_and_answer",
         processed_dir: str = str(DEFAULT_PROCESSED_DIR),
-        model: str = "Qwen/Qwen3-0.6B",
+        model: str = DEFAULT_MODEL_ID,
         max_context_chars: int = 8000,
         max_new_tokens: int = 384,
         thinking: bool = False,
@@ -414,11 +414,12 @@ class StudentCLI:
             f"Loaded {len(results.search_results)} questions "
             f"from {in_path}"
         )
+        if thinking:
+            print_info("Ignoring --thinking (not used by OpenRouter client).")
         generator = AnswerGenerator(
             model_id=model,
             max_context_chars=max_context_chars,
             max_new_tokens=max_new_tokens,
-            enable_thinking=thinking,
             temperature=temperature,
         )
 
@@ -441,7 +442,7 @@ class StudentCLI:
             ]
             try:
                 answer_text = generator.generate(
-                    item.question, snippets, item.retrieved_sources
+                    item.question, snippets, item.retrieved_sources, model=model
                 )
             except Exception as exc:
                 _err(f"Generation failed for question {item.question_id}: {exc}")

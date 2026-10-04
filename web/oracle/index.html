@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RAG Oracle</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem auto; max-width: 860px; padding: 0 1rem; }
+    label { font-weight: 600; display: block; margin-bottom: 0.35rem; }
+    textarea, select, button { width: 100%; font-size: 1rem; margin-bottom: 0.9rem; }
+    textarea { min-height: 120px; padding: 0.6rem; }
+    select, button { padding: 0.55rem; }
+    button { cursor: pointer; }
+    .muted { color: #555; font-size: 0.9rem; margin-top: -0.5rem; margin-bottom: 1rem; }
+    .error { color: #a40000; margin-top: 0.5rem; }
+    .answer { white-space: pre-wrap; border: 1px solid #ddd; padding: 0.9rem; border-radius: 6px; background: #fafafa; }
+    .sources { margin-top: 1rem; }
+    .sources li { margin-bottom: 0.4rem; }
+  </style>
+</head>
+<body>
+  <h1>RAG against the machine</h1>
+  <p class="muted">Selecciona un modelo de OpenRouter y haz tu pregunta.</p>
+
+  <label for="model-select">Modelo</label>
+  <select id="model-select" aria-label="Seleccionar modelo OpenRouter"></select>
+  <p class="muted" id="model-meta"></p>
+
+  <label for="question-input">Pregunta</label>
+  <textarea id="question-input" placeholder="Escribe tu pregunta..."></textarea>
+  <button id="ask-btn" type="button">Preguntar</button>
+
+  <div id="status" class="muted" role="status" aria-live="polite"></div>
+  <div id="error" class="error" role="alert"></div>
+
+  <h2>Respuesta</h2>
+  <div id="answer" class="answer">Sin respuesta todavía.</div>
+
+  <div class="sources">
+    <h3>Fuentes</h3>
+    <ul id="sources"></ul>
+  </div>
+
+  <script>
+    const modelSelect = document.getElementById('model-select');
+    const modelMeta = document.getElementById('model-meta');
+    const askBtn = document.getElementById('ask-btn');
+    const questionInput = document.getElementById('question-input');
+    const statusNode = document.getElementById('status');
+    const errorNode = document.getElementById('error');
+    const answerNode = document.getElementById('answer');
+    const sourcesNode = document.getElementById('sources');
+
+    let models = [];
+
+    function setStatus(msg) { statusNode.textContent = msg || ''; }
+    function setError(msg) { errorNode.textContent = msg || ''; }
+
+    function updateModelMeta() {
+      const selected = models.find((m) => m.id === modelSelect.value);
+      if (!selected) {
+        modelMeta.textContent = '';
+        return;
+      }
+      const parts = [];
+      if (selected.context_length) parts.push(`contexto: ${selected.context_length}`);
+      if (selected.prompt_price || selected.completion_price) {
+        parts.push(`precio prompt/completion: ${selected.prompt_price || '-'} / ${selected.completion_price || '-'}`);
+      }
+      modelMeta.textContent = parts.join(' · ');
+    }
+
+    async function loadModels() {
+      setError('');
+      setStatus('Cargando modelos...');
+      modelSelect.disabled = true;
+      try {
+        const response = await fetch('/api/models');
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.detail || `HTTP ${response.status}`);
+        }
+        models = await response.json();
+        modelSelect.innerHTML = '';
+        const previous = sessionStorage.getItem('selected_openrouter_model');
+        models.forEach((model) => {
+          const option = document.createElement('option');
+          option.value = model.id;
+          option.textContent = model.name || model.id;
+          modelSelect.appendChild(option);
+        });
+        if (models.length === 0) {
+          throw new Error('No hay modelos disponibles en OpenRouter.');
+        }
+        const hasPrevious = previous && models.some((m) => m.id === previous);
+        modelSelect.value = hasPrevious ? previous : models[0].id;
+        sessionStorage.setItem('selected_openrouter_model', modelSelect.value);
+        updateModelMeta();
+        setStatus('Modelos cargados.');
+      } catch (error) {
+        setError(`Error cargando modelos: ${error.message}`);
+        setStatus('');
+      } finally {
+        modelSelect.disabled = false;
+      }
+    }
+
+    async function ask() {
+      setError('');
+      const question = questionInput.value.trim();
+      if (!question) {
+        setError('La pregunta no puede estar vacía.');
+        return;
+      }
+      const model = modelSelect.value;
+      if (!model) {
+        setError('Selecciona un modelo.');
+        return;
+      }
+
+      askBtn.disabled = true;
+      setStatus('Consultando OpenRouter...');
+      answerNode.textContent = 'Generando respuesta...';
+      sourcesNode.innerHTML = '';
+
+      try {
+        const response = await fetch('/api/oracle/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question, model, k: 10 }),
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload.detail || `HTTP ${response.status}`);
+        }
+        answerNode.textContent = payload.answer || '(sin respuesta)';
+        sessionStorage.setItem('selected_openrouter_model', model);
+        const sources = Array.isArray(payload.retrieved_sources) ? payload.retrieved_sources : [];
+        for (const source of sources) {
+          const item = document.createElement('li');
+          item.textContent = `${source.file_path} [${source.first_character_index}-${source.last_character_index}]`;
+          sourcesNode.appendChild(item);
+        }
+        setStatus('Consulta completada.');
+      } catch (error) {
+        answerNode.textContent = 'No se pudo generar una respuesta.';
+        setError(`Error al consultar: ${error.message}`);
+        setStatus('');
+      } finally {
+        askBtn.disabled = false;
+      }
+    }
+
+    modelSelect.addEventListener('change', () => {
+      sessionStorage.setItem('selected_openrouter_model', modelSelect.value);
+      updateModelMeta();
+    });
+    askBtn.addEventListener('click', ask);
+
+    loadModels();
+  </script>
+</body>
+</html>
